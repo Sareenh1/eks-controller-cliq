@@ -1,0 +1,297 @@
+{
+  "name": "EKS Dynamic Scale via Cliq",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eks-control",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "22a5cc70-bc46-49f5-b776-1c49409067ae",
+      "name": "Cliq Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        112
+      ],
+      "webhookId": "7895dff1-264f-46a4-85be-c94827318bcf"
+    },
+    {
+      "parameters": {
+        "functionCode": "const text = $json.body.text.toLowerCase().trim();\n\n// Show nodes\nif (text === \"nodes\") {\n  return [{ command: \"nodes\" }];\n}\n\n// set node command\nif (text.startsWith(\"set node\")) {\n  const parts = text.split(\" \");\n  const count = parts[2];\n\n  if (!count || isNaN(count)) {\n    return [{ command: \"invalid\" }];\n  }\n\n  return [{\n    command: \"setnode\",\n    count: count\n  }];\n}\n\nreturn [{ command: \"invalid\" }];"
+      },
+      "id": "3eff53a7-ff5c-47bc-a00f-b48f62d78fd6",
+      "name": "Parse Command",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=/home/ubuntu/eks-control.sh nodes",
+        "cwd": "/home/ubuntu"
+      },
+      "id": "4eda5bc5-3735-4806-a64e-acfffd333cec",
+      "name": "Get Nodes",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        0
+      ],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "MWBKHVoF3FbUi491",
+          "name": "SSH Password account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=/home/ubuntu/eks-control.sh setnode {{$json.count}}",
+        "cwd": "/home/ubuntu"
+      },
+      "id": "818f285c-8dab-4fb4-89ee-51a6fb90c136",
+      "name": "Scale Nodes",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        192
+      ],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "MWBKHVoF3FbUi491",
+          "name": "SSH Password account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.command}}",
+                    "rightValue": "nodes",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ed6c4a0d-5616-4a53-85a0-b24e5af9c0f5"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5e9c671e-37e7-4977-80f8-d80d364508c6",
+                    "leftValue": "={{$json.command}}",
+                    "rightValue": "setnode",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4160f6f7-d12b-4fc2-8c39-1dff0fa990eb",
+                    "leftValue": "={{$json.command}}",
+                    "rightValue": "invalid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -288,
+        112
+      ],
+      "id": "a12ef3d3-4477-4ee9-904b-3fccab9c19f1",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac0bbf87-3ab5-4cd4-bf7a-80706179573c",
+              "name": "text",
+              "value": "❌ Invalid command. Use:\\nnodes\\nscale <number>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        400
+      ],
+      "id": "41901fdc-52fe-4341-ab4f-99d882641f64",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a27d375-c48f-4689-a65a-df5be6584f23",
+              "name": "text",
+              "value": "=={{ JSON.parse($json.stdout).text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        112
+      ],
+      "id": "818dc215-e668-4cc7-a085-a13c2687c83b",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cliq Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get Nodes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Scale Nodes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Nodes": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scale Nodes": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d0d2cc9d-c348-48d7-953e-a729c0a2db1e",
+  "meta": {
+    "instanceId": "9e4591d4e29496cdca5abd739f78562c3f77a28d358ad3027ed3784d3884594a"
+  },
+  "id": "ISoASmp6s3pxv78JUePUN",
+  "tags": []
+}
