@@ -1,0 +1,16 @@
+
+n8n_url = "https://n8n.amplied.in/webhook/eks-control";
+payload = Map();
+payload.put("text",message);
+payload.put("user_name",user.get("name"));
+payload.put("user_email",user.get("email"));
+payload.put("chat_id",chat.get("id"));
+response = invokeurl
+[
+	url :n8n_url
+	type :POST
+	body:payload.toString()
+	headers:{"Content-Type":"application/json"}
+];
+// n8n now returns clean text string
+return response;
